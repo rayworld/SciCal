@@ -1,1 +1,472 @@
-<h1>welcome!</h1>h1
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>科学计算器 Kindle 8</title>
+<style>
+  /* 兼容 Kindle 8（2016）内置实验浏览器：基础 CSS，黑白高对比，大触控区 */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: #ffffff;
+    color: #000000;
+    padding: 8px;
+  }
+  .wrap { width: 100%; max-width: 560px; margin: 0 auto; }
+  .title {
+    font-size: 16px; font-weight: bold; padding: 6px 2px;
+    border-bottom: 2px solid #000; margin-bottom: 8px;
+  }
+  .modebar { margin: 4px 2px 8px 2px; font-size: 15px; }
+  .modebar button {
+    font-size: 15px; padding: 6px 10px; border: 1px solid #000;
+    background: #eeeeee; cursor: pointer;
+  }
+  .display {
+    border: 2px solid #000; padding: 8px; margin-bottom: 8px;
+  }
+  .expr {
+    font-size: 20px; min-height: 26px; text-align: right;
+    word-wrap: break-word; border-bottom: 1px dashed #999; padding-bottom: 4px;
+  }
+  .result {
+    font-size: 24px; font-weight: bold; min-height: 30px; text-align: right;
+    padding-top: 4px; word-wrap: break-word;
+  }
+  table.keys { width: 100%; border-collapse: separate; border-spacing: 5px; }
+  table.keys td { width: 25%; }
+  table.keys button {
+    width: 100%; height: 46px; font-size: 18px; cursor: pointer;
+    border: 1px solid #000; background: #ffffff; color: #000000;
+  }
+  table.keys button.fn { background: #dddddd; font-size: 15px; }
+  table.keys button.op { background: #cccccc; font-size: 18px; }
+  table.keys button.eq { background: #000000; color: #ffffff; font-weight: bold; }
+  table.keys button.danger { background: #bbbbbb; font-size: 16px; }
+  .history { margin-top: 12px; border-top: 2px solid #000; padding-top: 8px; }
+  .history h3 { font-size: 15px; margin-bottom: 6px; }
+  .history ul { list-style: none; }
+  .history li {
+    font-size: 15px; padding: 7px 4px; border-bottom: 1px solid #ccc;
+    cursor: pointer;
+  }
+  .history li .r { font-weight: bold; }
+  .empty { font-size: 14px; color: #555; padding: 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title">科学计算器</div>
+
+  <div class="modebar">
+    <button type="button" id="modeBtn" onclick="toggleMode()">DEG</button>
+    <span id="modeLabel">角度（度）</span>
+  </div>
+
+  <div class="display">
+    <div class="expr" id="expr"></div>
+    <div class="result" id="result">0</div>
+  </div>
+
+  <table class="keys">
+    <tr>
+      <td><button type="button" class="fn" onclick="func('sin')">sin</button></td>
+      <td><button type="button" class="fn" onclick="func('cos')">cos</button></td>
+      <td><button type="button" class="fn" onclick="func('tan')">tan</button></td>
+      <td><button type="button" class="fn" onclick="func('asin')">sin⁻¹</button></td>
+    </tr>
+    <tr>
+      <td><button type="button" class="fn" onclick="func('acos')">cos⁻¹</button></td>
+      <td><button type="button" class="fn" onclick="func('atan')">tan⁻¹</button></td>
+      <td><button type="button" class="fn" onclick="func('ln')">ln</button></td>
+      <td><button type="button" class="fn" onclick="func('log')">log</button></td>
+    </tr>
+    <tr>
+      <td><button type="button" class="fn" onclick="consts('pi')">π</button></td>
+      <td><button type="button" class="fn" onclick="consts('e')">e</button></td>
+      <td><button type="button" class="fn" onclick="append('^2')">x²</button></td>
+      <td><button type="button" class="fn" onclick="append('^')">xʸ</button></td>
+    </tr>
+    <tr>
+      <td><button type="button" class="fn" onclick="func('sqrt')">√</button></td>
+      <td><button type="button" class="fn" onclick="fact()">n!</button></td>
+      <td><button type="button" class="fn" onclick="append('%')">%</button></td>
+      <td><button type="button" class="fn" onclick="reciprocal()">1/x</button></td>
+    </tr>
+    <tr>
+      <td><button type="button" class="op" onclick="append('(')">(</button></td>
+      <td><button type="button" class="op" onclick="append(')')">)</button></td>
+      <td><button type="button" class="danger" onclick="del()">DEL</button></td>
+      <td><button type="button" class="danger" onclick="clearAll()">AC</button></td>
+    </tr>
+    <tr>
+      <td><button type="button" onclick="append('7')">7</button></td>
+      <td><button type="button" onclick="append('8')">8</button></td>
+      <td><button type="button" onclick="append('9')">9</button></td>
+      <td><button type="button" class="op" onclick="append('/')">÷</button></td>
+    </tr>
+    <tr>
+      <td><button type="button" onclick="append('4')">4</button></td>
+      <td><button type="button" onclick="append('5')">5</button></td>
+      <td><button type="button" onclick="append('6')">6</button></td>
+      <td><button type="button" class="op" onclick="append('*')">×</button></td>
+    </tr>
+    <tr>
+      <td><button type="button" onclick="append('1')">1</button></td>
+      <td><button type="button" onclick="append('2')">2</button></td>
+      <td><button type="button" onclick="append('3')">3</button></td>
+      <td><button type="button" class="op" onclick="append('-')">−</button></td>
+    </tr>
+    <tr>
+      <td><button type="button" onclick="toggleSign()">+/−</button></td>
+      <td><button type="button" onclick="append('0')">0</button></td>
+      <td><button type="button" onclick="append('.')">.</button></td>
+      <td><button type="button" class="op" onclick="append('+')">+</button></td>
+    </tr>
+    <tr>
+      <td colspan="2"><button type="button" class="fn" onclick="reciprocalNeg()">±(整体)</button></td>
+      <td colspan="2"><button type="button" class="eq" onclick="calculate()">=</button></td>
+    </tr>
+  </table>
+
+  <div class="history">
+    <h3>历史记录</h3>
+    <ul id="historyList"></ul>
+  </div>
+</div>
+
+<script>
+// ===== 状态（ES5，兼容老 WebKit）=====
+var expr = "";
+var degMode = true; // true=角度 DEG，false=弧度 RAD
+var history = [];
+
+var exprEl = document.getElementById("expr");
+var resultEl = document.getElementById("result");
+var historyEl = document.getElementById("historyList");
+var modeBtn = document.getElementById("modeBtn");
+var modeLabel = document.getElementById("modeLabel");
+
+function showError(msg) {
+  resultEl.innerHTML = msg;
+}
+
+function refreshDisplay() {
+  exprEl.innerHTML = displayExpr(expr);
+}
+
+// 内部符号 -> 显示符号
+function displayExpr(s) {
+  var out = s;
+  out = out.replace(/pi/g, "π");
+  out = out.replace(/\*/g, "×");
+  out = out.replace(/\//g, "÷");
+  out = out.replace(/-/g, "−");
+  return out;
+}
+
+// ===== 按键输入 =====
+function append(tok) {
+  expr += tok;
+  refreshDisplay();
+}
+
+function func(name) {
+  expr += name + "(";
+  refreshDisplay();
+}
+
+function consts(name) {
+  expr += name;
+  refreshDisplay();
+}
+
+function fact() {
+  expr += "!";
+  refreshDisplay();
+}
+
+function del() {
+  if (expr.length === 0) return;
+  // 若删掉的是函数名括号（如 sin(），整段函数名一起删除
+  if (expr.charAt(expr.length - 1) === "(") {
+    var i = expr.length - 2;
+    while (i >= 0 && /[a-z]/.test(expr.charAt(i))) { i--; }
+    expr = expr.substring(0, i + 1);
+  } else {
+    expr = expr.substring(0, expr.length - 1);
+  }
+  refreshDisplay();
+}
+
+function clearAll() {
+  expr = "";
+  resultEl.innerHTML = "0";
+  refreshDisplay();
+}
+
+// 整体取负：在最外层包一层 (-1)*( ... )
+function reciprocalNeg() {
+  if (expr === "") return;
+  expr = "(-1)*(" + expr + ")";
+  refreshDisplay();
+}
+
+// 1/x：把末尾操作数包裹成 1/(...)
+function reciprocal() {
+  if (expr === "") { expr = "1/("; refreshDisplay(); return; }
+  var end = expr.length;
+  var seg;
+  // 末尾是右括号，向前匹配左括号
+  if (expr.charAt(end - 1) === ")") {
+    var depth = 0; var i = end - 1;
+    for (; i >= 0; i--) {
+      if (expr.charAt(i) === ")") depth++;
+      else if (expr.charAt(i) === "(") depth--;
+      if (depth === 0) break;
+    }
+    seg = expr.substring(i, end);
+    expr = expr.substring(0, i) + "1/(" + seg + ")";
+  } else {
+    var j = end;
+    while (j > 0 && /[0-9.e]/.test(expr.charAt(j - 1))) { j--; }
+    seg = expr.substring(j, end);
+    expr = expr.substring(0, j) + "1/(" + seg + ")";
+  }
+  refreshDisplay();
+}
+
+// 末尾数字正负号：翻转最后一个尾数前的负号
+function toggleSign() {
+  if (expr === "") return;
+  // 若当前整体以 (- 开头则去掉
+  if (expr.indexOf("(-") === 0) {
+    expr = expr.substring(2, expr.length - 1);
+  } else {
+    expr = "(-" + expr + ")";
+  }
+  refreshDisplay();
+}
+
+function toggleMode() {
+  degMode = !degMode;
+  if (degMode) {
+    modeBtn.innerHTML = "DEG";
+    modeLabel.innerHTML = "角度（度）";
+  } else {
+    modeBtn.innerHTML = "RAD";
+    modeLabel.innerHTML = "弧度";
+  }
+}
+
+// ===== 表达式解析与求值（递归下降）=====
+function factorial(n) {
+  if (n < 0) throw new Error("阶乘不能为负");
+  if (Math.abs(n - Math.round(n)) > 1e-9) throw new Error("仅支持整数阶乘");
+  var k = Math.round(n);
+  if (k > 170) throw new Error("阶乘溢出");
+  var r = 1;
+  for (var i = 2; i <= k; i++) { r *= i; }
+  return r;
+}
+
+function evaluate(input) {
+  var pos = 0;
+  var s = input;
+
+  function peek() { return s.charAt(pos); }
+
+  function skipSpace() {
+    while (pos < s.length && s.charAt(pos) === " ") { pos++; }
+  }
+
+  function parseExpr() {
+    var v = parseTerm();
+    skipSpace();
+    while (peek() === "+" || peek() === "-") {
+      var op = s.charAt(pos); pos++;
+      var r = parseTerm();
+      v = (op === "+") ? (v + r) : (v - r);
+      skipSpace();
+    }
+    return v;
+  }
+
+  function parseTerm() {
+    var v = parseFactor();
+    skipSpace();
+    while (peek() === "*" || peek() === "/") {
+      var op = s.charAt(pos); pos++;
+      var r = parseFactor();
+      if (op === "/") {
+        if (r === 0) throw new Error("除数为 0");
+        v = v / r;
+      } else {
+        v = v * r;
+      }
+      skipSpace();
+    }
+    return v;
+  }
+
+  function parseFactor() {
+    var base = parseUnary();
+    skipSpace();
+    if (peek() === "^") {
+      pos++;
+      var exp = parseFactor(); // 右结合
+      return Math.pow(base, exp);
+    }
+    return base;
+  }
+
+  function parseUnary() {
+    skipSpace();
+    if (peek() === "-") { pos++; return -parseUnary(); }
+    if (peek() === "+") { pos++; return parseUnary(); }
+    return parsePostfix();
+  }
+
+  function parsePostfix() {
+    var v = parsePrimary();
+    skipSpace();
+    while (peek() === "!" || peek() === "%") {
+      if (peek() === "!") { pos++; v = factorial(v); }
+      else { pos++; v = v / 100; }
+      skipSpace();
+    }
+    return v;
+  }
+
+  function matchWord() {
+    var i = pos;
+    while (i < s.length && /[a-z]/.test(s.charAt(i))) { i++; }
+    var w = s.substring(pos, i);
+    pos = i;
+    return w;
+  }
+
+  function toRad(x) { return degMode ? x * Math.PI / 180 : x; }
+  function fromRad(x) { return degMode ? x * 180 / Math.PI : x; }
+
+  function parsePrimary() {
+    skipSpace();
+    var c = peek();
+
+    if (c === "(") {
+      pos++;
+      var v = parseExpr();
+      skipSpace();
+      if (peek() !== ")") throw new Error("缺少右括号");
+      pos++;
+      return v;
+    }
+
+    if (/[0-9.]/.test(c)) {
+      var j = pos;
+      while (j < s.length && /[0-9.]/.test(s.charAt(j))) { j++; }
+      var numStr = s.substring(pos, j);
+      pos = j;
+      var num = parseFloat(numStr);
+      if (isNaN(num)) throw new Error("数字格式错误");
+      return num;
+    }
+
+    if (/[a-z]/.test(c)) {
+      var w = matchWord();
+      if (w === "pi") return Math.PI;
+      if (w === "e") return Math.E;
+
+      var fn = {
+        "sin": function (x) { return Math.sin(toRad(x)); },
+        "cos": function (x) { return Math.cos(toRad(x)); },
+        "tan": function (x) { return Math.tan(toRad(x)); },
+        "asin": function (x) { return fromRad(Math.asin(x)); },
+        "acos": function (x) { return fromRad(Math.acos(x)); },
+        "atan": function (x) { return fromRad(Math.atan(x)); },
+        "ln": function (x) { return Math.log(x); },
+        "log": function (x) { return Math.log(x) / Math.LN10; },
+        "sqrt": function (x) { return Math.sqrt(x); }
+      };
+
+      if (fn[w]) {
+        skipSpace();
+        if (peek() !== "(") throw new Error("函数缺少括号");
+        pos++;
+        var arg = parseExpr();
+        skipSpace();
+        if (peek() !== ")") throw new Error("缺少右括号");
+        pos++;
+        var res = fn[w](arg);
+        if (isNaN(res)) throw new Error("参数超出范围");
+        return res;
+      }
+      throw new Error("未知符号: " + w);
+    }
+
+    throw new Error("表达式有误");
+  }
+
+  var result = parseExpr();
+  skipSpace();
+  if (pos < s.length) throw new Error("表达式有误");
+  return result;
+}
+
+function formatNumber(v) {
+  if (!isFinite(v)) throw new Error("结果超出范围");
+  if (Math.abs(v) < 1e-12) v = 0;
+  var abs = Math.abs(v);
+  if (abs !== 0 && (abs >= 1e12 || abs < 1e-9)) {
+    return v.toExponential(6);
+  }
+  var p = parseFloat(v.toPrecision(12));
+  return String(p);
+}
+
+function calculate() {
+  if (expr === "") { resultEl.innerHTML = "0"; return; }
+  try {
+    var val = evaluate(expr);
+    var txt = formatNumber(val);
+    resultEl.innerHTML = txt;
+    history.unshift({ e: expr, r: txt });
+    if (history.length > 20) history.pop();
+    renderHistory();
+    expr = txt; // 结果可继续参与运算
+    refreshDisplay();
+  } catch (err) {
+    showError(err.message || "错误");
+  }
+}
+
+function renderHistory() {
+  historyEl.innerHTML = "";
+  if (history.length === 0) {
+    var li0 = document.createElement("li");
+    li0.className = "empty";
+    li0.innerHTML = "暂无记录";
+    historyEl.appendChild(li0);
+    return;
+  }
+  for (var i = 0; i < history.length; i++) {
+    (function (item) {
+      var li = document.createElement("li");
+      li.innerHTML = displayExpr(item.e) + " = <span class='r'>" + item.r + "</span>";
+      li.onclick = function () {
+        expr = item.r;
+        resultEl.innerHTML = item.r;
+        refreshDisplay();
+      };
+      historyEl.appendChild(li);
+    })(history[i]);
+  }
+}
+
+renderHistory();
+refreshDisplay();
+</script>
+</body>
+</html>
+
